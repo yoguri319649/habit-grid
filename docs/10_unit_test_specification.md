@@ -92,6 +92,15 @@
 | 該当日の `minutes` が正しく反映される | `timeLogs=[{date:'2026-08-05',minutes:45}]`, `today=2026-08-05` | 該当セルの `minutes===45`, `level===2` |
 | 記録がない日は0分・level0になる | 上記以外の日付 | `minutes===0`, `level===0` |
 
+テストクラス: `monthLabelsForGrid`
+
+| テストメソッド | 入力 | 期待結果 |
+|---|---|---|
+| 最初の週には常に "N月" 形式のラベルが付く | `buildContributionGrid` の結果 | `labels[0]` が最初の週の月を表す文字列 |
+| 前の週と月が変わらない週は null になる | 同上 | 月が同じ列は `null` |
+| 月が変わる週にはラベルが付く | 同上 | 月が変わる列は `"N月"` |
+| ラベルの数はグリッドに含まれる月の種類数と一致する | 同上 | `labels` のうち非 `null` の件数 === グリッド内の月の種類数 |
+
 ## 3. `src/lib/date.ts`
 
 テストクラス: `toDateString`
@@ -149,8 +158,8 @@
 | createSubTask は重み0で作成後、自動で均等リバランスされる | サブタスクを3件作成 | 各 `weight` の合計が100(例: 33,33,34。端数は最後の要素に寄る) |
 | updateSubTaskName は名称を更新する | `updateSubTaskName(id, "新しい名前")` | `name==="新しい名前"` |
 | updateSubTaskWeight は0〜100にクランプする | `updateSubTaskWeight(id, 150)` / `(id, -10)` | `weight===100` / `weight===0` |
-| updateSubTaskWeight は兄弟の重みを再配分し合計100を維持する | 3件中1件を `weight=50` に変更 | 変更後の全サブタスクの `weight` 合計が100 |
-| サブタスクが1件のみの場合、重みは常に100になる | 1件の状態で `updateSubTaskWeight(id, 10)` | `weight===100` |
+| updateSubTaskWeight は兄弟の重みを変更しない(手動編集は他に影響しない) | 3件中1件を `weight=50` に変更 | 対象以外の `weight` は変化しない(合計が100からずれることもある) |
+| サブタスクが1件のみでも、指定した重みがそのまま設定される(100に強制されない) | 1件の状態で `updateSubTaskWeight(id, 10)` | `weight===10` |
 | updateSubTaskProgress は0〜100にクランプする | `updateSubTaskProgress(id, 150)` / `(id, -10)` | `progress===100` / `progress===0` |
 | deleteSubTask は削除後、残りの重みを比率配分し合計100を維持する | 3件中1件を削除 | 残り2件の `weight` 合計が100 |
 | deleteSubTask は削除後に sortOrder を詰め直す | 中間の要素を削除 | 残りの `sortOrder` が `0,1,2...` と連番になる |
@@ -163,8 +172,8 @@
 
 | テストメソッド | 操作 | 期待結果 |
 |---|---|---|
-| addTimeLog は該当日のレコードがなければ新規作成する | `addTimeLog(taskId, "2026-08-09", 30)` | 新規行が `minutes===30` で作成される |
-| addTimeLog は同日に複数回呼ぶと分数を加算する(上書きしない) | 同日に対し `addTimeLog(..., 30)` → `addTimeLog(..., 15)` | 該当日の `minutes===45` |
+| setTimeLog は該当日のレコードがなければ新規作成する | `setTimeLog(taskId, "2026-08-09", 30)` | 新規行が `minutes===30` で作成される |
+| setTimeLog は同日に複数回呼ぶと最後に指定した分数で上書きする | 同日に対し `setTimeLog(..., 60)` → `setTimeLog(..., 15)` | 該当日の `minutes===15` |
 | deleteTimeLog は対象レコードを削除する | `deleteTimeLog(id)` | `listTimeLogs(taskId)` から該当行が消える |
 | listTimeLogs は日付の昇順で返す | 複数日付のログを登録 | 返り値が古い日付順に並ぶ |
 
@@ -205,11 +214,12 @@
 
 | テストメソッド | 操作 | 期待結果 |
 |---|---|---|
-| 「15分」タップで addTimeLog(taskId, today, 15) を呼ぶ | 「15分」チップを press | `timeLogRepository.addTimeLog` が該当引数で呼ばれる |
+| 「15分」タップで setTimeLog(taskId, today, 15) を呼ぶ | 「15分」チップを press | `timeLogRepository.setTimeLog` が該当引数で呼ばれる |
 | 「30分」「1時間」も同様に正しい分数で呼ばれる | 各チップを press | 引数がそれぞれ30・60で呼ばれる |
+| 大きいチップの後に小さいチップを押すと小さい方の値で上書きされる | 「1時間」→「15分」の順に press | 最後の呼び出しが `setTimeLog(taskId, today, 15)` |
 | 「それ以上」タップで `Alert.prompt` が呼ばれる | 「それ以上」を press | `Alert.prompt` が呼ばれる |
-| `Alert.prompt` で正の数値を入力すると addTimeLog が呼ばれる | コールバックに `"90"` を渡す | `addTimeLog(taskId, today, 90)` |
-| `Alert.prompt` で数値以外・0以下を入力すると何もしない | コールバックに `""` / `"0"` を渡す | `addTimeLog` が呼ばれない |
+| `Alert.prompt` で正の数値を入力すると setTimeLog が呼ばれる | コールバックに `"90"` を渡す | `setTimeLog(taskId, today, 90)` |
+| `Alert.prompt` で数値以外・0以下を入力すると何もしない | コールバックに `""` / `"0"` を渡す | `setTimeLog` が呼ばれない |
 
 ## 12. `ContributionGraph`(`src/components/contribution-graph.tsx`)
 
@@ -232,8 +242,13 @@
 - `@testing-library/react-native` v14 の `render`/`renderHook` は非同期関数のため、テストコードでは必ず `await render(...)` / `await renderHook(...)` を使用する。また、同一ファイル内で複数回 `render` するテストでは、直後の `getByXxx`(同期)がまれに未コミットの状態を掴むことがあったため、`findByXxx`(非同期・リトライあり)を用いて安定化した。
 - `ProgressBar` / `SubTaskProgressSlider` / `TimeChipRow`(の「それ以上」ボタン) / `ContributionGraph`(の各セル)には、テストで要素を特定するための `testID` を追加した。
 
-### テスト実施中に見つかった既存の不具合(本仕様書のスコープ外・未修正)
-`src/hooks/use-theme.ts` の `useTheme()` は `useColorScheme()` の戻り値が `'unspecified'` の場合のみ `'light'` にフォールバックしているが、RNの型定義上 `useColorScheme()` は `null` / `undefined` も返り得る(実際、テスト環境ではデフォルトで `undefined` が返る)。その場合 `Colors[undefined]` が `undefined` になり、`ThemedText`/`ThemedView` 等の利用箇所でクラッシュし得る。テストでは `useColorScheme` を明示的にモックして回避したが、実装側の修正は本チケットのスコープ外としたため別途対応要否を確認されたい。
+### テスト実施中に見つかった既存の不具合
+`src/hooks/use-theme.ts` の `useTheme()` が `useColorScheme()` の `null`/`undefined` を考慮しておらずクラッシュし得る不具合を発見(`Colors[undefined]` になり得た)。別ブランチ(`fix/use-theme-undefined-color-scheme`)で修正・テスト追加済み。
+
+### 後続の修正で追加・変更されたテスト
+- `updateSubTaskWeight` の兄弟自動再配分を廃止(手動編集は他のサブタスクに影響しない仕様に変更)したことに伴い、`subtasks.test.ts` の該当テストを更新。
+- 時間チップの記録方式を加算から上書きに変更(`addTimeLog` → `setTimeLog`)したことに伴い、`timelogs.test.ts` / `time-chip-row.test.tsx` を更新。
+- コントリビューショングラフに縦軸(曜日)・横軸(月)ラベルを追加し、`monthLabelsForGrid`(`src/lib/contribution.ts`)のテストを追加。
 
 ## Todoリスト
 - [x] 要件定義・仕様確認(本ドキュメント)

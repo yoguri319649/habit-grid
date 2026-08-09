@@ -2,12 +2,15 @@ import { Alert, View, useColorScheme } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
-import { buildContributionGrid, type ContributionLevel } from '@/lib/contribution';
+import { buildContributionGrid, monthLabelsForGrid, type ContributionLevel } from '@/lib/contribution';
 
 const WEEKS = 12;
 const CELL_SIZE = 12;
 const CELL_GAP = 3;
 const CELL_STEP = CELL_SIZE + CELL_GAP;
+const WEEKDAY_AXIS_WIDTH = 20;
+/** GitHub-style: show every other weekday to keep the axis readable. Rows are Sun(0)..Sat(6). */
+const WEEKDAY_LABELS = ['', '月', '', '水', '', '金', ''];
 
 /** Sequential blue ramp, level 0 (no activity) through 4 (2h+). Ordered light->dark on a light surface, dark->light on a dark one so intensity always reads as "more prominent". */
 const LEVEL_COLORS: Record<'light' | 'dark', Record<ContributionLevel, string>> = {
@@ -23,30 +26,60 @@ export function ContributionGraph({ timeLogs }: Props) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = LEVEL_COLORS[scheme];
   const grid = buildContributionGrid(timeLogs, WEEKS);
+  const monthLabels = monthLabelsForGrid(grid);
 
   const handleCellPress = (date: string, minutes: number) => {
     Alert.alert(date, minutes > 0 ? `${minutes}分取り組みました` : '記録なし');
   };
 
   return (
-    <View className="gap-2">
-      <Svg width={WEEKS * CELL_STEP} height={7 * CELL_STEP}>
-        {grid.map((week, weekIndex) =>
-          week.map((day, dayIndex) => (
-            <Rect
-              key={day.date}
-              testID={`contribution-cell-${day.date}`}
-              x={weekIndex * CELL_STEP}
-              y={dayIndex * CELL_STEP}
-              width={CELL_SIZE}
-              height={CELL_SIZE}
-              rx={2}
-              fill={colors[day.level]}
-              onPress={() => handleCellPress(day.date, day.minutes)}
-            />
-          )),
-        )}
-      </Svg>
+    <View className="gap-1">
+      <View className="flex-row">
+        <View style={{ width: WEEKDAY_AXIS_WIDTH }} />
+        {monthLabels.map((label, weekIndex) => (
+          <View key={weekIndex} style={{ width: CELL_STEP }}>
+            {label && (
+              <ThemedText
+                type="small"
+                themeColor="textSecondary"
+                numberOfLines={1}
+                style={{ fontSize: 9 }}>
+                {label}
+              </ThemedText>
+            )}
+          </View>
+        ))}
+      </View>
+      <View className="flex-row">
+        <View style={{ width: WEEKDAY_AXIS_WIDTH }}>
+          {WEEKDAY_LABELS.map((label, dayIndex) => (
+            <View key={dayIndex} style={{ height: CELL_STEP, justifyContent: 'center' }}>
+              {label && (
+                <ThemedText type="small" themeColor="textSecondary" style={{ fontSize: 9 }}>
+                  {label}
+                </ThemedText>
+              )}
+            </View>
+          ))}
+        </View>
+        <Svg width={WEEKS * CELL_STEP} height={7 * CELL_STEP}>
+          {grid.map((week, weekIndex) =>
+            week.map((day, dayIndex) => (
+              <Rect
+                key={day.date}
+                testID={`contribution-cell-${day.date}`}
+                x={weekIndex * CELL_STEP}
+                y={dayIndex * CELL_STEP}
+                width={CELL_SIZE}
+                height={CELL_SIZE}
+                rx={2}
+                fill={colors[day.level]}
+                onPress={() => handleCellPress(day.date, day.minutes)}
+              />
+            )),
+          )}
+        </Svg>
+      </View>
       <View className="flex-row items-center gap-1 self-end">
         <ThemedText type="small" themeColor="textSecondary">
           少ない

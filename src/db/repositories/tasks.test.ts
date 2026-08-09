@@ -52,7 +52,7 @@ describe('taskRepository', () => {
   it('deleteTaskは紐づくサブタスク・時間記録もカスケード削除する', async () => {
     const task = await taskRepository.createTask('引っ越し');
     await subTaskRepository.createSubTask(task.id, '荷造り');
-    await timeLogRepository.addTimeLog(task.id, '2026-08-09', 30);
+    await timeLogRepository.setTimeLog(task.id, '2026-08-09', 30);
 
     await taskRepository.deleteTask(task.id);
 
