@@ -16,8 +16,8 @@ export async function listTimeLogs(taskId: number) {
   return timeLogsQuery(taskId);
 }
 
-/** Records self-reported minutes for a task on a given day, adding to any minutes already logged that day. */
-export async function addTimeLog(taskId: number, date: string, minutes: number) {
+/** Records self-reported minutes for a task on a given day, overwriting any minutes already logged that day. */
+export async function setTimeLog(taskId: number, date: string, minutes: number) {
   const [existing] = await db
     .select()
     .from(timeLogs)
@@ -26,7 +26,7 @@ export async function addTimeLog(taskId: number, date: string, minutes: number) 
   if (existing) {
     const [timeLog] = await db
       .update(timeLogs)
-      .set({ minutes: existing.minutes + minutes })
+      .set({ minutes })
       .where(eq(timeLogs.id, existing.id))
       .returning();
     return timeLog;

@@ -1,4 +1,4 @@
-import { buildContributionGrid, levelForMinutes } from './contribution';
+import { buildContributionGrid, levelForMinutes, monthLabelsForGrid } from './contribution';
 
 describe('levelForMinutes', () => {
   it('0分は level 0', () => {
@@ -79,5 +79,43 @@ describe('buildContributionGrid', () => {
     const grid = buildContributionGrid([{ date: '2026-08-05', minutes: 45 }], 12, today);
     const cell = grid.flat().find((c) => c.date === '2026-08-04');
     expect(cell).toEqual({ date: '2026-08-04', minutes: 0, level: 0 });
+  });
+});
+
+describe('monthLabelsForGrid', () => {
+  const today = new Date(2026, 7, 5); // 2026-08-05
+
+  it('最初の週には常に "N月" 形式のラベルが付く', () => {
+    const grid = buildContributionGrid([], 12, today);
+    const labels = monthLabelsForGrid(grid);
+    const firstMonth = new Date(grid[0][0].date).getMonth() + 1;
+    expect(labels[0]).toBe(`${firstMonth}月`);
+  });
+
+  it('前の週と月が変わらない週はnullになる', () => {
+    const grid = buildContributionGrid([], 12, today);
+    const labels = monthLabelsForGrid(grid);
+    for (let i = 1; i < grid.length; i++) {
+      const month = new Date(grid[i][0].date).getMonth();
+      const prevMonth = new Date(grid[i - 1][0].date).getMonth();
+      if (month === prevMonth) expect(labels[i]).toBeNull();
+    }
+  });
+
+  it('月が変わる週にはラベルが付く', () => {
+    const grid = buildContributionGrid([], 12, today);
+    const labels = monthLabelsForGrid(grid);
+    for (let i = 1; i < grid.length; i++) {
+      const month = new Date(grid[i][0].date).getMonth();
+      const prevMonth = new Date(grid[i - 1][0].date).getMonth();
+      if (month !== prevMonth) expect(labels[i]).toBe(`${month + 1}月`);
+    }
+  });
+
+  it('ラベルの数はグリッドに含まれる月の種類数と一致する', () => {
+    const grid = buildContributionGrid([], 12, today);
+    const labels = monthLabelsForGrid(grid);
+    const distinctMonths = new Set(grid.map((week) => new Date(week[0].date).getMonth()));
+    expect(labels.filter((label) => label !== null)).toHaveLength(distinctMonths.size);
   });
 });

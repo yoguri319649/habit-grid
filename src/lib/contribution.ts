@@ -47,3 +47,18 @@ export function buildContributionGrid(
   }
   return weeksGrid;
 }
+
+/**
+ * For each week column, returns a "N月" label when that week's first day (Sunday) starts a new
+ * month compared to the previous column, or null otherwise — for labeling the grid's month axis.
+ */
+export function monthLabelsForGrid(grid: ContributionCell[][]): (string | null)[] {
+  let lastMonth: number | null = null;
+
+  return grid.map((week) => {
+    const month = new Date(week[0].date).getMonth();
+    if (month === lastMonth) return null;
+    lastMonth = month;
+    return `${month + 1}月`;
+  });
+}

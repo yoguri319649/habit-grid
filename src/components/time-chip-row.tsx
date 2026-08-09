@@ -16,7 +16,7 @@ type Props = {
 
 export function TimeChipRow({ taskId }: Props) {
   const logMinutes = (minutes: number) => {
-    timeLogRepository.addTimeLog(taskId, todayDateString(), minutes);
+    timeLogRepository.setTimeLog(taskId, todayDateString(), minutes);
   };
 
   const handleMore = () => {
