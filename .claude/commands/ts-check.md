@@ -1,0 +1,1 @@
+npx tsx --noEmit を実行して、Typescriptチェックしてください。
