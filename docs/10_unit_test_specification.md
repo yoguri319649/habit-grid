@@ -146,7 +146,7 @@
 
 | テストメソッド | 操作 | 期待結果 |
 |---|---|---|
-| createSubTask は重み0で作成後、自動で均等リバランスされる | サブタスクを3件作成 | 各 `weight` の合計が100(例: 34,33,33) |
+| createSubTask は重み0で作成後、自動で均等リバランスされる | サブタスクを3件作成 | 各 `weight` の合計が100(例: 33,33,34。端数は最後の要素に寄る) |
 | updateSubTaskName は名称を更新する | `updateSubTaskName(id, "新しい名前")` | `name==="新しい名前"` |
 | updateSubTaskWeight は0〜100にクランプする | `updateSubTaskWeight(id, 150)` / `(id, -10)` | `weight===100` / `weight===0` |
 | updateSubTaskWeight は兄弟の重みを再配分し合計100を維持する | 3件中1件を `weight=50` に変更 | 変更後の全サブタスクの `weight` 合計が100 |
@@ -155,7 +155,7 @@
 | deleteSubTask は削除後、残りの重みを比率配分し合計100を維持する | 3件中1件を削除 | 残り2件の `weight` 合計が100 |
 | deleteSubTask は削除後に sortOrder を詰め直す | 中間の要素を削除 | 残りの `sortOrder` が `0,1,2...` と連番になる |
 | reorderSubTasks は指定した順序で sortOrder を更新する | 順序を入れ替えて `reorderSubTasks` | `listSubTasks` の並び順が指定順と一致 |
-| rebalanceWeightsEqually は均等割りし端数を最後の要素に寄せる | サブタスク3件で実行 | `[34,33,33]` のように合計100になる |
+| rebalanceWeightsEqually は均等割りし端数を最後の要素に寄せる | サブタスク3件で実行 | `[33,33,34]` のように合計100になる |
 
 ## 7. `timeLogRepository`(`src/db/repositories/timelogs.ts`, インメモリDB使用)
 
@@ -223,9 +223,21 @@
 
 ---
 
+## 実装メモ
+
+- テストランナー: `jest`(`jest-expo` プリセット)。`npm test` で実行する。
+- devDependencies に `jest`, `jest-expo`, `@types/jest`, `@testing-library/react-native`, `better-sqlite3`, `@types/better-sqlite3` を追加。
+- `src/db/test-utils/create-test-db.ts`: `drizzle/0000_clumsy_shiva.sql`(実際のマイグレーションSQL)を読み込み、`better-sqlite3` のインメモリDBにスキーマを適用するヘルパー。各リポジトリのテストで `jest.mock('@/db/client', ...)` によりこのテストDBに差し替える。
+- CSS import(`@/global.css` 等)は `jest/css-stub.js` に `moduleNameMapper` でスタブ化。
+- `@testing-library/react-native` v14 の `render`/`renderHook` は非同期関数のため、テストコードでは必ず `await render(...)` / `await renderHook(...)` を使用する。また、同一ファイル内で複数回 `render` するテストでは、直後の `getByXxx`(同期)がまれに未コミットの状態を掴むことがあったため、`findByXxx`(非同期・リトライあり)を用いて安定化した。
+- `ProgressBar` / `SubTaskProgressSlider` / `TimeChipRow`(の「それ以上」ボタン) / `ContributionGraph`(の各セル)には、テストで要素を特定するための `testID` を追加した。
+
+### テスト実施中に見つかった既存の不具合(本仕様書のスコープ外・未修正)
+`src/hooks/use-theme.ts` の `useTheme()` は `useColorScheme()` の戻り値が `'unspecified'` の場合のみ `'light'` にフォールバックしているが、RNの型定義上 `useColorScheme()` は `null` / `undefined` も返り得る(実際、テスト環境ではデフォルトで `undefined` が返る)。その場合 `Colors[undefined]` が `undefined` になり、`ThemedText`/`ThemedView` 等の利用箇所でクラッシュし得る。テストでは `useColorScheme` を明示的にモックして回避したが、実装側の修正は本チケットのスコープ外としたため別途対応要否を確認されたい。
+
 ## Todoリスト
 - [x] 要件定義・仕様確認(本ドキュメント)
-- [ ] 設計・タスク分解
-- [ ] 実装
-- [ ] テスト作成・実行
+- [x] 設計・タスク分解
+- [x] 実装
+- [x] テスト作成・実行
 - [ ] レビュー・マージ

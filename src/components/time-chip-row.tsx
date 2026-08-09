@@ -46,6 +46,7 @@ export function TimeChipRow({ taskId }: Props) {
         </Pressable>
       ))}
       <Pressable
+        testID="time-chip-more"
         onPress={handleMore}
         className="rounded-full bg-[#F0F0F3] px-4 py-2 active:opacity-70 dark:bg-[#212225]">
         <ThemedText type="smallBold">それ以上</ThemedText>
