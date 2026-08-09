@@ -1,98 +1,76 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import { FlatList, Pressable, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { ProgressBar } from '@/components/progress-bar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import type { Task } from '@/db/schema';
+import { useOverallProgress } from '@/hooks/use-overall-progress';
+import { useTasks } from '@/hooks/use-tasks';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+function TaskListItem({ task }: { task: Task }) {
+  const router = useRouter();
+  const progress = useOverallProgress(task.id);
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <Pressable
+      onPress={() => router.push({ pathname: '/task/[id]', params: { id: String(task.id) } })}
+      className="active:opacity-70">
+      <ThemedView type="backgroundElement" className="gap-3 rounded-2xl p-4">
+        <ThemedText
+          numberOfLines={1}
+          style={task.completed ? { textDecorationLine: 'line-through' } : undefined}>
+          {task.title}
+        </ThemedText>
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1">
+            <ProgressBar progress={progress} />
+          </View>
+          <ThemedText type="small" themeColor="textSecondary" style={{ width: 36, textAlign: 'right' }}>
+            {progress}%
+          </ThemedText>
+        </View>
+      </ThemedView>
+    </Pressable>
   );
 }
 
-export default function HomeScreen() {
+export default function TaskListScreen() {
+  const router = useRouter();
+  const tasks = useTasks();
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+    <ThemedView style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          title: 'タスク',
+          headerLargeTitle: true,
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/task/new')}
+              hitSlop={8}
+              accessibilityLabel="タスクを追加">
+              <ThemedText type="linkPrimary" style={{ fontSize: 22, lineHeight: 22 }}>
+                ＋
+              </ThemedText>
+            </Pressable>
+          ),
+        }}
+      />
+      {tasks.length === 0 ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <ThemedText themeColor="textSecondary" style={{ textAlign: 'center' }}>
+            まだタスクがありません。右上の＋から作成しましょう。
           </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
+        </View>
+      ) : (
+        <FlatList
+          data={tasks}
+          keyExtractor={(task) => String(task.id)}
+          contentContainerStyle={{ padding: 16, gap: 12 }}
+          renderItem={({ item }) => <TaskListItem task={item} />}
+        />
+      )}
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
