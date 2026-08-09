@@ -35,6 +35,7 @@ export function ContributionGraph({ timeLogs }: Props) {
           week.map((day, dayIndex) => (
             <Rect
               key={day.date}
+              testID={`contribution-cell-${day.date}`}
               x={weekIndex * CELL_STEP}
               y={dayIndex * CELL_STEP}
               width={CELL_SIZE}

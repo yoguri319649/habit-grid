@@ -18,6 +18,7 @@ export function SubTaskProgressSlider({ subTaskId, progress }: Props) {
   return (
     <View className="flex-row items-center gap-3">
       <Slider
+        testID="subtask-progress-slider"
         style={{ flex: 1 }}
         minimumValue={0}
         maximumValue={100}
