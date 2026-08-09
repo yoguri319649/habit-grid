@@ -109,6 +109,7 @@ export default function EditTaskScreen() {
 
   const task = useTask(taskId);
   const subTasks = useSubTasks(taskId);
+  const weightTotal = subTaskRepository.sumWeights(subTasks);
   const [titleDraft, setTitleDraft] = useState<string | null>(null);
 
   const commitTitle = () => {
@@ -138,6 +139,17 @@ export default function EditTaskScreen() {
     );
   };
 
+  const handleComplete = () => {
+    if (subTasks.length > 0 && weightTotal !== 100) {
+      Alert.alert(
+        '重みの合計が100%ではありません',
+        `サブタスクの重みの合計を100%に調整してから完了してください(現在: ${weightTotal}%)`,
+      );
+      return;
+    }
+    router.back();
+  };
+
   const handleDeleteTask = () => {
     if (!task) return;
     Alert.alert('タスクを削除', `「${task.title}」を削除しますか?この操作は取り消せません。`, [
@@ -163,7 +175,7 @@ export default function EditTaskScreen() {
         options={{
           title: 'タスクを編集',
           headerRight: () => (
-            <Pressable onPress={() => router.back()} hitSlop={8}>
+            <Pressable onPress={handleComplete} hitSlop={8}>
               <ThemedText type="linkPrimary">完了</ThemedText>
             </Pressable>
           ),
@@ -194,6 +206,13 @@ export default function EditTaskScreen() {
               <ThemedText type="linkPrimary">＋ 追加</ThemedText>
             </Pressable>
           </View>
+          {subTasks.length > 0 && (
+            <ThemedText
+              type="small"
+              style={{ color: weightTotal === 100 ? theme.textSecondary : '#e34948' }}>
+              重みの合計: {weightTotal}%{weightTotal !== 100 && ' (100%になるように調整してください)'}
+            </ThemedText>
+          )}
           {subTasks.length === 0 ? (
             <ThemedText type="small" themeColor="textSecondary">
               サブタスクがありません。重みは追加時に自動で均等割りされます。
