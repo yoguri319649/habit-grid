@@ -3,12 +3,21 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { tasks } from '@/db/schema';
 
-export async function listTasks() {
+/** Query builder (not yet awaited) so callers can subscribe to it via useLiveQuery. */
+export function tasksQuery() {
   return db.select().from(tasks).orderBy(desc(tasks.createdAt));
 }
 
+export function taskQuery(taskId: number) {
+  return db.select().from(tasks).where(eq(tasks.id, taskId));
+}
+
+export async function listTasks() {
+  return tasksQuery();
+}
+
 export async function getTask(taskId: number) {
-  const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
+  const [task] = await taskQuery(taskId);
   return task;
 }
 
