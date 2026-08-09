@@ -78,42 +78,42 @@ describe('subTaskRepository', () => {
   });
 
   it('updateSubTaskWeightは0〜100にクランプする', async () => {
-    // 兄弟がいない(1件のみの)場合は常に100に固定されるため、クランプ自体は兄弟がいる状態で検証する
     const task = await createTask();
     const subTask = await subTaskRepository.createSubTask(task.id, 'A');
-    await subTaskRepository.createSubTask(task.id, 'B');
 
     await subTaskRepository.updateSubTaskWeight(subTask.id, 150);
-    expect((await subTaskRepository.listSubTasks(task.id)).find((s) => s.id === subTask.id)?.weight).toBe(
-      100,
-    );
+    expect((await subTaskRepository.listSubTasks(task.id))[0].weight).toBe(100);
 
     await subTaskRepository.updateSubTaskWeight(subTask.id, -10);
-    expect((await subTaskRepository.listSubTasks(task.id)).find((s) => s.id === subTask.id)?.weight).toBe(
-      0,
-    );
+    expect((await subTaskRepository.listSubTasks(task.id))[0].weight).toBe(0);
   });
 
-  it('updateSubTaskWeightは兄弟の重みを再配分し合計100を維持する', async () => {
+  it('updateSubTaskWeightは兄弟の重みを変更しない(手動編集は他に影響しない)', async () => {
     const task = await createTask();
     const a = await subTaskRepository.createSubTask(task.id, 'A');
-    await subTaskRepository.createSubTask(task.id, 'B');
-    await subTaskRepository.createSubTask(task.id, 'C');
+    const b = await subTaskRepository.createSubTask(task.id, 'B');
+    const c = await subTaskRepository.createSubTask(task.id, 'C');
+    const before = await subTaskRepository.listSubTasks(task.id);
+    const bWeightBefore = before.find((s) => s.id === b.id)?.weight;
+    const cWeightBefore = before.find((s) => s.id === c.id)?.weight;
 
     await subTaskRepository.updateSubTaskWeight(a.id, 50);
 
-    const list = await subTaskRepository.listSubTasks(task.id);
-    expect(subTaskRepository.sumWeights(list)).toBe(100);
-    expect(list.find((s) => s.id === a.id)?.weight).toBe(50);
+    const after = await subTaskRepository.listSubTasks(task.id);
+    expect(after.find((s) => s.id === a.id)?.weight).toBe(50);
+    expect(after.find((s) => s.id === b.id)?.weight).toBe(bWeightBefore);
+    expect(after.find((s) => s.id === c.id)?.weight).toBe(cWeightBefore);
+    // 手動編集だけでは合計が100%からずれることがある(完了操作側で検証する)
+    expect(subTaskRepository.sumWeights(after)).not.toBe(100);
   });
 
-  it('サブタスクが1件のみの場合、重みは常に100になる', async () => {
+  it('サブタスクが1件のみでも、指定した重みがそのまま設定される(100に強制されない)', async () => {
     const task = await createTask();
     const subTask = await subTaskRepository.createSubTask(task.id, 'A');
 
     await subTaskRepository.updateSubTaskWeight(subTask.id, 10);
 
-    expect((await subTaskRepository.listSubTasks(task.id))[0].weight).toBe(100);
+    expect((await subTaskRepository.listSubTasks(task.id))[0].weight).toBe(10);
   });
 
   it('updateSubTaskProgressは0〜100にクランプする', async () => {

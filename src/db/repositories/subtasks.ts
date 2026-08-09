@@ -38,34 +38,17 @@ export async function updateSubTaskName(subTaskId: number, name: string) {
 }
 
 /**
- * Sets a subtask's weight and redistributes the remainder among its siblings
- * (proportionally to their current weights) so the task's weights always sum to exactly 100%.
+ * Sets a subtask's weight (0-100) without touching its siblings. Manual edits are intentionally
+ * isolated to the subtask being edited; whether the task's weights sum to 100% is checked
+ * separately (e.g. before letting the user finish editing a task), not auto-corrected here.
  */
 export async function updateSubTaskWeight(subTaskId: number, weight: number) {
-  const [current] = await db.select().from(subTasks).where(eq(subTasks.id, subTaskId));
-  if (!current) return undefined;
-
-  const siblings = (await listSubTasks(current.taskId)).filter((s) => s.id !== subTaskId);
-  const clamped = siblings.length === 0 ? 100 : Math.min(100, Math.max(0, Math.round(weight)));
-
+  const clamped = Math.min(100, Math.max(0, Math.round(weight)));
   const [subTask] = await db
     .update(subTasks)
     .set({ weight: clamped })
     .where(eq(subTasks.id, subTaskId))
     .returning();
-
-  if (siblings.length > 0) {
-    const shares = distributeProportionally(
-      100 - clamped,
-      siblings.map((sibling) => sibling.weight),
-    );
-    await Promise.all(
-      siblings.map((sibling, index) =>
-        db.update(subTasks).set({ weight: shares[index] }).where(eq(subTasks.id, sibling.id)),
-      ),
-    );
-  }
-
   return subTask;
 }
 
