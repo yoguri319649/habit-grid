@@ -67,6 +67,7 @@ export default function TaskListScreen() {
         <FlatList
           data={tasks}
           keyExtractor={(task) => String(task.id)}
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ padding: 16, gap: 12 }}
           renderItem={({ item }) => <TaskListItem task={item} />}
         />
