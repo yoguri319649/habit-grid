@@ -11,12 +11,14 @@ export default function NewTaskScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [title, setTitle] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
     const trimmed = title.trim();
-    if (!trimmed) return;
-    await taskRepository.createTask(trimmed);
-    router.back();
+    if (!trimmed || saving) return;
+    setSaving(true);
+    const task = await taskRepository.createTask(trimmed);
+    router.replace({ pathname: '/task/[id]/edit', params: { id: String(task.id) } });
   };
 
   return (
@@ -25,8 +27,8 @@ export default function NewTaskScreen() {
         options={{
           title: '新規タスク',
           headerRight: () => (
-            <Pressable onPress={handleCreate} hitSlop={8}>
-              <ThemedText type="linkPrimary">保存</ThemedText>
+            <Pressable onPress={handleCreate} hitSlop={8} disabled={saving}>
+              <ThemedText type="linkPrimary">作成</ThemedText>
             </Pressable>
           ),
         }}
@@ -41,6 +43,9 @@ export default function NewTaskScreen() {
         style={{ color: theme.text }}
         className="rounded-xl bg-[#F0F0F3] p-4 text-base dark:bg-[#212225]"
       />
+      <ThemedText type="small" themeColor="textSecondary">
+        作成すると続けてサブタスクを追加できます
+      </ThemedText>
     </ThemedView>
   );
 }
