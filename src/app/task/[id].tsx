@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 
 import { ContributionGraph } from '@/components/contribution-graph';
@@ -24,6 +24,7 @@ function SectionTitle({ children }: { children: string }) {
 export default function TaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const taskId = Number(id);
+  const router = useRouter();
 
   const task = useTask(taskId);
   const subTasks = useSubTasks(taskId);
@@ -48,7 +49,18 @@ export default function TaskDetailScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <Stack.Screen options={{ title: task.title }} />
+      <Stack.Screen
+        options={{
+          title: task.title,
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push({ pathname: '/task/[id]/edit', params: { id: String(taskId) } })}
+              hitSlop={8}>
+              <ThemedText type="linkPrimary">編集</ThemedText>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 28 }}>
         <View className="gap-3">
           <Pressable

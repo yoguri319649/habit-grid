@@ -17,6 +17,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="task/[id]" />
           <Stack.Screen name="task/new" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="task/[id]/edit" options={{ presentation: 'modal' }} />
         </Stack>
       </DbMigrationsProvider>
     </ThemeProvider>
