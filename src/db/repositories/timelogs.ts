@@ -3,12 +3,17 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { timeLogs } from '@/db/schema';
 
-export async function listTimeLogs(taskId: number) {
+/** Query builder (not yet awaited) so callers can subscribe to it via useLiveQuery. */
+export function timeLogsQuery(taskId: number) {
   return db
     .select()
     .from(timeLogs)
     .where(eq(timeLogs.taskId, taskId))
     .orderBy(asc(timeLogs.date));
+}
+
+export async function listTimeLogs(taskId: number) {
+  return timeLogsQuery(taskId);
 }
 
 /** Records self-reported minutes for a task on a given day, adding to any minutes already logged that day. */
